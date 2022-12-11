@@ -28,7 +28,7 @@ $parts = explode("/", $_SERVER["REQUEST_URI"]);
 // print_r($parts);
 // echo "</pre>";
 
-if ($parts[1] != "products") {
+if ($parts[1] != "products" || $parts[1] != "garages") {
   http_response_code(404);
   exit;
 }
@@ -37,10 +37,23 @@ $id = $parts[2] ?? null;
 
 $database = new Database("mysql", "product_db", "root", "secret");
 
-// $database->getConnection();
 
-$gateway = new ProductGatewayModel($database);
 
-$contoller = new ProductController($gateway);
+switch ($routing) {
 
-$contoller->processRequest($_SERVER["REQUEST_METHOD"], $id);
+  case "products":
+    $gateway = new ProductGatewayModel($database);
+
+    $contoller = new ProductController($gateway);
+
+    $contoller->processRequest($_SERVER["REQUEST_METHOD"], $id);
+    break;
+
+  case "garages":
+
+    echo "wow";
+    break;
+
+  default:
+    break;
+}
