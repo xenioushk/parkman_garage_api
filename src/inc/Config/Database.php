@@ -6,22 +6,20 @@
 
 namespace Inc\Config;
 
+
 class Database
 {
 
-  public function __construct(
-    private string $host,
-    private string $name,
-    private string $user,
-    private string $password
-  ) {
+  public function __construct()
+  {
   }
 
   public function getConnection(): \PDO
 
   {
-    $dsn = "mysql:host={$this->host}; dbname={$this->name}; charset=utf8";
-    return new \PDO($dsn, $this->user, $this->password, [
+
+    $dsn = "mysql:host=" . Config::$DB_HOST . "; dbname=" . Config::$DB_NAME . "; charset=utf8";
+    return new \PDO($dsn, Config::$DB_USER, Config::$DB_PASSWORD, [
       \PDO::ATTR_EMULATE_PREPARES => false,
       \PDO::ATTR_STRINGIFY_FETCHES => false
     ]);

@@ -6,12 +6,12 @@
 
 namespace Inc\Controllers;
 
-use Inc\Models\ProductGatewayModel;
+use Inc\Models\GaragesModel;
 
-class ProductController extends BaseController
+class GaragesController
 {
 
-  public function __construct(private ProductGatewayModel $getway)
+  public function __construct(private GaragesModel $getway)
   {
   }
 
@@ -19,7 +19,7 @@ class ProductController extends BaseController
   {
 
     if ($id) {
-      //Read a single product details.
+      //Read a single garages details.
       $this->processResourceRequest($method, $id);
     } else {
       // Read all the products.
@@ -30,19 +30,19 @@ class ProductController extends BaseController
   private function processResourceRequest(string $method, string $id): void
   {
 
-    $product =  $this->getway->get($id);
+    $garages =  $this->getway->get($id);
 
-    if (!$product) {
+    if (!$garages) {
       http_response_code(404); // 404 = item not found
       echo json_encode([
-        "message" => "product not found"
+        "message" => "Garage not found"
       ]);
       return;
     }
 
     switch ($method) {
       case "GET":
-        echo json_encode($product);
+        echo json_encode($garages);
         break;
 
       case "PATCH":
@@ -62,12 +62,12 @@ class ProductController extends BaseController
           break;
         }
 
-        // update value.
-        $rows = $this->getway->update($product, $data);
+        // Update value.
+        $rows = $this->getway->update($garages, $data);
 
         http_response_code(200);
         echo json_encode([
-          "message" => "Product $id updated.",
+          "message" => "Garage $id updated.",
           "rows" => $rows
         ]);
 
@@ -76,7 +76,7 @@ class ProductController extends BaseController
       case "DELETE":
         $rows = $this->getway->delete($id);
         echo json_encode([
-          "message" => "Product $id deleted.",
+          "message" => "Garage $id deleted.",
           "rows" => $rows
         ]);
         break;
@@ -94,12 +94,14 @@ class ProductController extends BaseController
     switch ($method) {
 
       case "GET":
-        echo json_encode($this->getway->getAll());
+        echo json_encode([
+          "garages" => $this->getway->getAll()
+        ]);
         break;
 
       case "POST":
 
-        // convert all the response to array.
+        // Convert all the response to array.
         $data = (array) json_decode(file_get_contents("php://input"), true);
 
         // Validate data.
@@ -123,7 +125,7 @@ class ProductController extends BaseController
         http_response_code(201); // 201= A new item created.
 
         echo json_encode([
-          'message' => "Product created.",
+          'message' => "Garage created.",
           'id' => $id
         ]);
 

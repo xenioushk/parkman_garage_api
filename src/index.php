@@ -12,44 +12,32 @@ set_error_handler("ErrorHandler::handleError");
 set_exception_handler("ErrorHandler::handleEexception");
 
 use Inc\Config\Database;
-use Inc\Models\ProductGatewayModel;
-use Inc\Controllers\ProductController;
+use Inc\Models\GaragesModel;
+use Inc\Controllers\GaragesController;
 
 // return all the response in json format.
 header("Content-type: application/json; charset=UTF-8");
 
 $parts = explode("/", $_SERVER["REQUEST_URI"]);
 
-if ($parts[1] != "products" && $parts[1] != "garages") {
+echo "<pre>";
+print_r($_SERVER["REQUEST_URI"]);
+echo "</pre>";
+
+if ($parts[1] != "garages") {
   http_response_code(404);
   exit;
 }
 
 $id = $parts[2] ?? null;
 
-$database = new Database("mysql", "product_db", "root", "secret");
+$database = new Database();
 
-$routing = $parts[1];
+// Initiate Model.
+$gateway = new GaragesModel($database);
 
-switch ($routing) {
+// Create instance of controller class.
+$contoller = new GaragesController($gateway);
 
-  case "products":
-
-    // Send DB connection info.
-    $gateway = new ProductGatewayModel($database);
-
-    // Create instance of controller class.
-    $contoller = new ProductController($gateway);
-
-    // Process Request.
-    $contoller->processRequest($_SERVER["REQUEST_METHOD"], $id);
-    break;
-
-  case "garages":
-
-    echo "wow";
-    break;
-
-  default:
-    break;
-}
+// Process Request.
+$contoller->processRequest($_SERVER["REQUEST_METHOD"], $id);
