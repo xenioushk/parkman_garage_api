@@ -6,8 +6,7 @@
 
 namespace Inc\Models;
 
-use PDO;
-use Inc\Config\Config;
+use Inc\Config\Helpers;
 use Inc\Config\Database;
 
 class GaragesModel
@@ -34,8 +33,7 @@ class GaragesModel
                   garage AS GR, garage_info AS GI, garage_owner AS GO 
                 WHERE 
                   GI.garage_id=GR.garage_id AND
-                  GI.owner_id = GO.owner_id
-                ";
+                  GI.owner_id = GO.owner_id";
 
     $stmt = $this->conn->query($sql);
 
@@ -50,76 +48,105 @@ class GaragesModel
     return $data;
   }
 
-  // Read single garage.
+  // Read Filtered garage info.
 
-  public function get(string $id): array | false
+  public function get(string $queryString): array | false
   {
 
+    // Initalization.
+    $data = [];
+    $latitude = 0;
+    $longitude = 0;
+    $radius = 5; // lists all the items within 5miles from provided latitute and longitude.   
+    $radiusCondition = "";
+    $whereCondition = "";
+
+    // Default unit is miles. 
+    // If you want to change it to kilometers, change the value 3959 to 6371
+
+    $havingCondition = "(
+            3959 * acos (
+            cos ( radians(%lat%) )
+            * cos( radians( GR.latitude ) )
+            * cos( radians( GR.longitude ) - radians(%long%) )
+            + sin ( radians(%lat%) )
+            * sin( radians( GR.latitude ) )
+          )
+      ) AS distance";
+
+
+
+    $queryString = explode("&", $queryString);
+
+    $parametersValidity = [];
+
+    foreach ($queryString as $query) {
+
+      $query = explode("=", $query);
+
+      if (isset($query[0]) && isset($query[1])) {
+
+        $columnInfo = Helpers::checkColumnValidity($query[0], $query[1]);
+
+        if (isset($columnInfo['query'])) {
+
+          if ($columnInfo['query'] === "lat") {
+            $latitude = trim($query[1]);
+            $havingCondition = str_replace("%lat%", $latitude, $havingCondition);
+          } else if ($columnInfo['query'] === "long") {
+            $longitude = trim($query[1]);
+            $havingCondition = str_replace("%long%", $longitude, $havingCondition);
+          } else if ($columnInfo['query'] === "radius") {
+            $radius = $query[1];
+          } else {
+            $whereCondition .= " " . $columnInfo['query'] . " ";
+          }
+        } else {
+          $parametersValidity[] = $columnInfo['error'];
+        }
+      }
+    }
+
+
+    // Return, if any invalid parameter found.
+    if (!empty($parametersValidity)) {
+      $data['invalid_param'] = $parametersValidity;
+      return $data;
+    }
+
+    // To calculate distance, we need both latitude, longitude value. Radius is optional. Default: 5 miles.
+    if (!empty($havingCondition) && $latitude !== 0 && $longitude !== 0) {
+      $havingCondition = ", $havingCondition";
+      $radiusCondition = " HAVING distance <= $radius";
+    } else {
+      $havingCondition = "";
+    }
+
+    // Generate SQL.
     $sql = "SELECT 
                   GR.garage_id, GR.garage_name AS name, GR.hourly_price, GR.currency, 
                   GO.owner_email AS contact_email, 
-                  CONCAT_WS(' ', GR.latitude, GR.longitude) as point, GR.country,
-                  GO.owner_id, GO.owner_name AS garage_owner
+                   CONCAT_WS(' ', GR.latitude, GR.longitude) as point, GR.country,
+                  GO.owner_id, GO.owner_name AS garage_owner 
+                  $havingCondition 
                 FROM 
                   garage AS GR, garage_info AS GI, garage_owner AS GO 
-                WHERE 
-                  GI.garage_id=:id AND
+                WHERE 1 AND
                   GI.garage_id=GR.garage_id AND
-                  GI.owner_id = GO.owner_id
+                  GI.owner_id = GO.owner_id 
+                  $whereCondition
+                  $radiusCondition
                 ";
 
-    $stmt = $this->conn->prepare($sql);
-    $stmt->bindValue(":id", $id, \PDO::PARAM_INT);
-    $stmt->execute();
+    $stmt = $this->conn->query($sql);
 
-    $data = $stmt->fetch(PDO::FETCH_ASSOC);
+    // Return an associative array.
+    while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
+
+      // comment it, if you want to display the distance in json output.
+      unset($row['distance']);
+      $data[] = $row;
+    }
     return $data;
-  }
-
-  // Create a new garage.
-  public function create(array $data): string
-  {
-    $sql = "INSERT INTO " . Config::$Table_Garage .
-      " (name, size, is_available) VALUES (:name, :size, :is_available)";
-
-    $stmt = $this->conn->prepare($sql);
-    $stmt->bindValue(":name", $data['name'], \PDO::PARAM_STR);
-    $stmt->bindValue(":size", $data['size'] ?? 0, \PDO::PARAM_INT);
-    $stmt->bindValue(":is_available", (bool) $data['is_available'] ?? false, \PDO::PARAM_BOOL);
-
-    $stmt->execute();
-
-    return $this->conn->lastInsertId(); // return the last inserted id.
-  }
-
-  // Update a new garage.
-
-  public function update(array $current, array $new): int
-  {
-
-    $sql = "UPDATE product SET name = :name, size= :size, is_available= :is_available WHERE id=:id";
-    $stmt = $this->conn->prepare($sql);
-
-    $stmt->bindValue(":name", $new["name"] ?? $current["name"], \PDO::PARAM_STR);
-    $stmt->bindValue(":size", $new["size"] ?? $current["size"], \PDO::PARAM_INT);
-    $stmt->bindValue(":is_available", $new["is_available"] ?? $current["is_available"], \PDO::PARAM_BOOL);
-    $stmt->bindValue(":id", $current["id"], \PDO::PARAM_INT);
-
-    $stmt->execute();
-
-    return $stmt->rowCount();
-  }
-
-  // Delete a garage.
-
-  public function delete(int $id): int
-  {
-
-    $sql = "DELETE FROM product WHERE id=:id";
-    $stmt = $this->conn->prepare($sql);
-    $stmt->bindValue(":id", $id, \PDO::PARAM_INT);
-    $stmt->execute();
-
-    return $stmt->rowCount();
   }
 }

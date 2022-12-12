@@ -1,5 +1,9 @@
 <?php
 
+/**
+ * @package GaragesApi
+ */
+
 declare(strict_types=1);
 
 if (file_exists(dirname(__FILE__) . '/vendor/autoload.php')) {
@@ -8,6 +12,8 @@ if (file_exists(dirname(__FILE__) . '/vendor/autoload.php')) {
 
 require_once "inc/Config/ErrorHandler.php";
 
+// Set Error handlers output.
+// All the output in json format.
 set_error_handler("ErrorHandler::handleError");
 set_exception_handler("ErrorHandler::handleEexception");
 
@@ -18,19 +24,28 @@ use Inc\Controllers\GaragesController;
 // return all the response in json format.
 header("Content-type: application/json; charset=UTF-8");
 
-$parts = explode("/", $_SERVER["REQUEST_URI"]);
+// Initialize URL to the variable
+$requestUrl = $_SERVER["REQUEST_URI"];
 
-echo "<pre>";
-print_r($_SERVER["REQUEST_URI"]);
-echo "</pre>";
+$parts = explode("/", $requestUrl);
 
-if ($parts[1] != "garages") {
+$isValidRequest = str_contains($parts[1], 'garages');
+
+if ($isValidRequest !== true) {
   http_response_code(404);
   exit;
 }
 
-$id = $parts[2] ?? null;
+//Check and parse query string.
 
+$queryString = "";
+
+if (count($_GET) > 0) {
+
+  $queryString = explode('?', $parts[1])[1];
+}
+
+// Connect To Database.
 $database = new Database();
 
 // Initiate Model.
@@ -40,4 +55,4 @@ $gateway = new GaragesModel($database);
 $contoller = new GaragesController($gateway);
 
 // Process Request.
-$contoller->processRequest($_SERVER["REQUEST_METHOD"], $id);
+$contoller->processRequest($_SERVER["REQUEST_METHOD"], $queryString);
