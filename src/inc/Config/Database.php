@@ -6,7 +6,6 @@
 
 namespace Inc\Config;
 
-
 class Database
 {
 
@@ -15,7 +14,6 @@ class Database
   }
 
   public function getConnection(): \PDO
-
   {
 
     $dsn = "mysql:host=" . Config::$DB_HOST . "; dbname=" . Config::$DB_NAME . "; charset=utf8";

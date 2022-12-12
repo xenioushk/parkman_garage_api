@@ -15,79 +15,69 @@ class GaragesController
   {
   }
 
-  public function processRequest(string $method, ?string $id): void
+  /*
+  * Combined multiple parameters in a single API end point.
+  * @API end point: /garages?owner=xyz
+  * @API end point: /garages?garage_id=123456
+  * @API end point: /garages?owner_id=12345
+  * @API end point: /garages?country=finland
+  * @API end point: /garages?long=60.168673901487510&lat=24.930162952045407&radius=4
+  */
+  public function processRequest(string $method, ?string $queryString): void
   {
 
-    if ($id) {
-      //Read a single garages details.
-      $this->processResourceRequest($method, $id);
+    if ($queryString) {
+      //Filter Garage Info. Based On Owner, Country, location 
+      $this->processResourceRequest($method, $queryString);
     } else {
       // Read all the products.
       $this->processCollectionRequest($method);
     }
   }
 
-  private function processResourceRequest(string $method, string $id): void
+  private function processResourceRequest(string $method, string $queryString): void
   {
 
-    $garages =  $this->getway->get($id);
+    $garages =  $this->getway->get($queryString);
 
-    if (!$garages) {
+    if (isset($garages['invalid_param'])) {
+      // If any invalid parameter found.
+      http_response_code(403);
+      echo json_encode([
+        "message" => $garages['invalid_param']
+      ]);
+      return;
+    } elseif (!$garages) {
+      //If garages info is removed.
       http_response_code(404); // 404 = item not found
       echo json_encode([
         "message" => "Garage not found"
       ]);
       return;
-    }
+    } else {
 
-    switch ($method) {
-      case "GET":
-        echo json_encode($garages);
-        break;
-
-      case "PATCH":
-        // convert all the response to array.
-        $data = (array) json_decode(file_get_contents("php://input"), true);
-
-        // Validate data.
-
-        $errors = $this->getValidationErrors($data, false);
-
-        if (!empty($errors)) {
-
-          http_response_code(422); // error code for unprocessable entities.
+      // Get The Data.
+      // Future, We can easily add POST, PATCH, DELETE methods here and extend the functionalities.
+      switch ($method) {
+        case "GET":
           echo json_encode([
-            "errors" => $errors
+            "garages" => $garages
           ]);
           break;
-        }
 
-        // Update value.
-        $rows = $this->getway->update($garages, $data);
-
-        http_response_code(200);
-        echo json_encode([
-          "message" => "Garage $id updated.",
-          "rows" => $rows
-        ]);
-
-        break;
-
-      case "DELETE":
-        $rows = $this->getway->delete($id);
-        echo json_encode([
-          "message" => "Garage $id deleted.",
-          "rows" => $rows
-        ]);
-        break;
-
-      default:
-        http_response_code(405); // 405 = method not allowed
-        header("Allow: GET, PATCH, DELETE");
-        break;
+        default:
+          http_response_code(405); // 405 = method not allowed
+          header("Allow: GET");
+          break;
+      }
     }
   }
 
+
+  /*
+  * Get all the garages info.
+  * @API end point: /garages
+  */
   private function processCollectionRequest(string $method): void
   {
 
@@ -99,60 +89,10 @@ class GaragesController
         ]);
         break;
 
-      case "POST":
-
-        // Convert all the response to array.
-        $data = (array) json_decode(file_get_contents("php://input"), true);
-
-        // Validate data.
-
-        $errors = $this->getValidationErrors($data);
-
-        if (!empty($errors)) {
-
-          http_response_code(422); // error code for unprocessable entities.
-          echo json_encode([
-            "errors" => $errors
-          ]);
-          break;
-        }
-
-        // Create a new post.
-        $id = $this->getway->create($data);
-
-        // Bind a response code.
-
-        http_response_code(201); // 201= A new item created.
-
-        echo json_encode([
-          'message' => "Garage created.",
-          'id' => $id
-        ]);
-
-        break;
-
       default:
         http_response_code(405); // 405 = method not allowed
-        header("Allow: GET, POST");
+        header("Allow: GET");
         break;
     }
-  }
-
-  private function getValidationErrors(array $data, bool $is_new = true): array
-  {
-    $errors = [];
-
-    if ($is_new && empty($data["name"])) {
-      $errors[] = "name is required.";
-    }
-
-    if (array_key_exists("size", $data)) {
-
-      if (filter_var($data["size"], FILTER_VALIDATE_INT) === false) {
-        $errors[] = "size must be integer";
-      }
-    }
-
-    return $errors;
   }
 }
