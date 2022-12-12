@@ -100,25 +100,29 @@ You need to install Postman/Insomnia application to test the API endpoints.
 
 ## Demo
 
-### All Garages List Response
+### 1. All Garages List Response
 
 ![all_garages](preview/2_all_garages.jpg)
 
-### Garages Filter Response
+### 2 .Garages Filter Response
 
 ![filter_example](preview/3_filter_example.jpg)
 
-### Garage Not Found Response
+### 3. Garage Not Found Response
 
 ![not_found](preview/4_not_found.jpg)
 
-### Invalid Parameter Response
+### 4. Invalid Parameter Response
 
 ![invalid_parameter](preview/5_invalid_parameter.jpg)
 
-### Internal Server Response
+### 5. Internal Server Response
 
 ![internal_server_error](preview/6_internal_server_error.jpg)
+
+### 6. All Response In JSON Format.
+
+![all_garages](preview/7_header_response_json.jpg)
 
 ## Acknowledgements
 
@@ -128,3 +132,4 @@ You need to install Postman/Insomnia application to test the API endpoints.
 - [phpmyadmin](https://www.phpmyadmin.net/)
 - [mysql](https://www.mysql.com/)
 - [nginx](https://www.nginx.com/)
+- [postman](https://www.postman.com/)
